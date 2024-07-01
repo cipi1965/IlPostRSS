@@ -47,7 +47,7 @@ for (const [key, value] of Object.entries(podcasts)) {
         const podcastListJson = await podcastList.json()
 
         const feed = new Podcast({
-            title: 'Indagini',
+            title: value.title,
             imageUrl: value.cover,
             description: description,
             feedUrl: `${process.env.BASE_URL}/${key}`,
