@@ -9,10 +9,6 @@ import fs from 'fs';
 import { stripHtml } from "string-strip-html";
 
 const fastify = Fastify({ logger: true })
-fastify.register(import('@fastify/static'), {
-    root: path.join(import.meta.dirname, 'assets'),
-    prefix: '/assets/',
-})
 
 const cookieJar = new CookieJar()
 
