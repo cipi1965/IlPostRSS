@@ -2,6 +2,7 @@ import {fetch, CookieJar} from "node-fetch-cookies";
 import Fastify from "fastify";
 import { Podcast } from "podcast";
 import 'dotenv/config'
+import podcasts from './podcasts.js'
 
 const fastify = Fastify({ logger: true })
 
@@ -22,36 +23,39 @@ const login = await fetch(cookieJar,"https://www.ilpost.it/wp-login.php", {
     }
 })
 
-fastify.get('/', async (request, reply) => {
-    const podcast = await fetch(cookieJar, "https://www.ilpost.it/wp-admin/admin-ajax.php", {
-        body: "action=checkpodcast&post_id=0&podcast_id=227474",
-        method: "POST",
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8'
-        }
-    })
-    const podcastJson = await podcast.json()
-
-    const feed = new Podcast({
-        title: 'Indagini',
-        feedUrl: 'http://192.168.192.168:3000/',
-        author: 'Il Post'
-    })
-
-    for (const podcastEpisode of podcastJson['data']['postcastList']) {
-        feed.addItem({
-            title: podcastEpisode.title,
-            url: podcastEpisode.url,
-            date: podcastEpisode.date,
-            enclosure: {
-                url: podcastEpisode.podcast_raw_url,
-                type: 'audio/mpeg'
+for (const [key, value] of Object.entries(podcasts)) {
+    fastify.get(`/${key}`, async (request, reply) => {
+        const podcast = await fetch(cookieJar, "https://www.ilpost.it/wp-admin/admin-ajax.php", {
+            body: `action=checkpodcast&post_id=0&podcast_id=${value.id}`,
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8'
             }
         })
-    }
+        const podcastJson = await podcast.json()
 
-    return feed.buildXml()
-})
+        const feed = new Podcast({
+            title: 'Indagini',
+            imageUrl: value.cover,
+            feedUrl: 'http://192.168.192.168:3000/',
+            author: 'Il Post'
+        })
+
+        for (const podcastEpisode of podcastJson['data']['postcastList']) {
+            feed.addItem({
+                title: podcastEpisode.title,
+                url: podcastEpisode.url,
+                date: podcastEpisode.date,
+                enclosure: {
+                    url: podcastEpisode.podcast_raw_url,
+                    type: 'audio/mpeg'
+                }
+            })
+        }
+
+        return feed.buildXml()
+    })
+}
 
 // Run the server!
 try {
