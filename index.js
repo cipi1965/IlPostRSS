@@ -79,11 +79,13 @@ fastify.after(() => {
                     const episodeInfoResponse = await fetch(cookieJar, `https://www.ilpost.it/wp-json/wp/v2/episodes/${podcastEpisode.id}`)
 
                     const episodeInfoText = await episodeInfoResponse.text()
-                    fs.writeFileSync(cachePath, await episodeInfoText);
-                    episodeInfo = JSON.parse(episodeInfoText)
+                    if (episodeInfoResponse.status === 200) {
+                        fs.writeFileSync(cachePath, await episodeInfoText);
+                        episodeInfo = JSON.parse(episodeInfoText)
+                    }
                 }
 
-                const episodeDescription = stripHtml(episodeInfo.content.rendered).result
+                const episodeDescription = stripHtml(episodeInfo?.content?.rendered ?? '').result
 
                 feed.addItem({
                     title: podcastEpisode.title,
