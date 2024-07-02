@@ -8,6 +8,8 @@ import { parse } from 'node-html-parser';
 import fs from 'fs';
 import { stripHtml } from "string-strip-html";
 import { fastifyRequestContext } from '@fastify/request-context'
+import login from "./login.js";
+import {getEpisodeInfo} from "./episodes.js";
 
 const authenticate = {realm: 'Westeros'}
 const fastify = Fastify({ logger: true })
@@ -16,35 +18,32 @@ fastify.register(fastifyRequestContext)
 async function validate (username, password, req, reply) {
     const cookieJar = new CookieJar()
 
-    const body = new URLSearchParams({
-        log: username,
-        pwd: password,
-        'wp-submit': 'Accedi',
-        'testcookie': 1,
-    })
-
-    await fetch(cookieJar,"https://www.ilpost.it/wp-login.php", {
-        body: body.toString(),
-        method: "POST",
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8'
-        }
-    })
+    if (username === process.env.AUTH_GENERIC_USERNAME && password === process.env.AUTH_GENERIC_PASSWORD) {
+        login(cookieJar, process.env.ILPOST_USERNAME, process.env.ILPOST_PASSWORD)
+    } else {
+        login(cookieJar, username, password)
+    }
 
     req.requestContext.set('jar', cookieJar)
 }
 
 fastify.register(import('@fastify/basic-auth'), { validate, authenticate })
 
-fastify.get('/test', async (request, reply) => {
-    console.log(request.headers)
-})
 fastify.after(() => {
-    fastify.addHook('onRequest', fastify.basicAuth)
+    if (process.env.USE_BASIC_AUTH === 'true') {
+        fastify.addHook('onRequest', fastify.basicAuth)
+    }
 
     for (const [key, value] of Object.entries(podcasts)) {
         fastify.get(`/${key}`, async (request, reply) => {
-            const cookieJar = request.requestContext.get('jar')
+
+            let cookieJar;
+            if (process.env.USE_BASIC_AUTH === 'true') {
+                cookieJar = request.requestContext.get('jar')
+            } else {
+                cookieJar = new CookieJar()
+                login(cookieJar, process.env.ILPOST_USERNAME, process.env.ILPOST_PASSWORD)
+            }
 
             const podcastInfo = await fetch(cookieJar, `https://www.ilpost.it/episodes/podcasts/${value.stringId}/`)
             const podcastInfoParsed = parse(await podcastInfo.text())
@@ -70,20 +69,7 @@ fastify.after(() => {
             })
 
             for (const podcastEpisode of podcastListJson['data']['postcastList']) {
-                const cachePath = path.join(import.meta.dirname, 'cache', `${podcastEpisode.id}.json`)
-                let episodeInfo = null
-
-                if (fs.existsSync(cachePath)) {
-                    episodeInfo = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-                } else {
-                    const episodeInfoResponse = await fetch(cookieJar, `https://www.ilpost.it/wp-json/wp/v2/episodes/${podcastEpisode.id}`)
-
-                    const episodeInfoText = await episodeInfoResponse.text()
-                    if (episodeInfoResponse.status === 200) {
-                        fs.writeFileSync(cachePath, await episodeInfoText);
-                        episodeInfo = JSON.parse(episodeInfoText)
-                    }
-                }
+                const episodeInfo = getEpisodeInfo(cookieJar, podcastEpisode.id)
 
                 const episodeDescription = stripHtml(episodeInfo?.content?.rendered ?? '').result
 
