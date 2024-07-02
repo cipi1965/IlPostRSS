@@ -85,7 +85,8 @@ fastify.after(() => {
                 })
             }
 
-            return feed.buildXml()
+            reply.header('Content-Type', 'application/xml')
+            reply.send(feed.buildXml())
         })
     }
 })
