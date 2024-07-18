@@ -19,9 +19,9 @@ async function validate (username, password, req, reply) {
     const cookieJar = new CookieJar()
 
     if (username === process.env.AUTH_GENERIC_USERNAME && password === process.env.AUTH_GENERIC_PASSWORD) {
-        login(cookieJar, process.env.ILPOST_USERNAME, process.env.ILPOST_PASSWORD)
+        await login(cookieJar, process.env.ILPOST_USERNAME, process.env.ILPOST_PASSWORD)
     } else {
-        login(cookieJar, username, password)
+        await login(cookieJar, username, password)
     }
 
     req.requestContext.set('jar', cookieJar)

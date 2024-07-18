@@ -5,10 +5,13 @@ export default async function login(cookieJar, username, password) {
         log: username,
         pwd: password,
         'wp-submit': 'Accedi',
-        'testcookie': 1,
     })
 
-    const login = await fetch(cookieJar,"https://www.ilpost.it/wp-login.php", {
+    await fetch(cookieJar, 'https://abbonati.ilpost.it', {
+        method: 'GET',
+    })
+
+    const login = await fetch(cookieJar,"https://abbonati.ilpost.it/wp-login.php", {
         body: body.toString(),
         method: "POST",
         headers: {
