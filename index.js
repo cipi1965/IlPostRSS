@@ -45,9 +45,9 @@ fastify.after(() => {
                 login(cookieJar, process.env.ILPOST_USERNAME, process.env.ILPOST_PASSWORD)
             }
 
-            const podcastInfo = await fetch(cookieJar, `https://www.ilpost.it/episodes/podcasts/${value.stringId}/`)
+            const podcastInfo = await fetch(cookieJar, `https://www.ilpost.it/podcasts/${value.stringId}/`)
             const podcastInfoParsed = parse(await podcastInfo.text())
-            const description = podcastInfoParsed.querySelector('.ilpostPodcastDesc').text;
+            const description = podcastInfoParsed.querySelector('._podcast-header__summary_1asv1_91').text;
 
             const podcastList = await fetch(cookieJar, "https://www.ilpost.it/wp-admin/admin-ajax.php", {
                 body: `action=checkpodcast&post_id=0&podcast_id=${value.id}`,
